@@ -4,4 +4,4 @@ How to use :
 Double click on the .bat file and the cleanup will be done automatically. 
 The window will show you which folders are being deleted and then close after that.
 
-Supports Star Citizen 3.23.x and older. 
+Supports Star Citizen 4.x.x and up.
