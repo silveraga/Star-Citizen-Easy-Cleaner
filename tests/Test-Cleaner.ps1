@@ -312,12 +312,12 @@ if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
             Assert-Throws { Assert-SCClosed } 'StarCitizen'
         } finally { Stop-Process -Id $proc.Id -ErrorAction SilentlyContinue; function Get-SCProcesses { return @() } }
         $batch = Join-Path (Split-Path $PSScriptRoot -Parent) 'SC Cleaner.bat'
-        & $env:ComSpec /d /c ('""' + $batch + '" --help"')
+        & $env:ComSpec /d /c call $batch --help
         Assert-True ($LASTEXITCODE -eq 0) 'Batch help failed'
-        & $env:ComSpec /d /c ('""' + $batch + '" --invalid"')
+        & $env:ComSpec /d /c call $batch --invalid
         Assert-True ($LASTEXITCODE -eq 2) 'Invalid arguments accepted'
         # Read-only batch preview against runner known folder; stdin prevents pause blocking.
-        & $env:ComSpec /d /c ('""' + $batch + '" --dry-run <nul"')
+        & $env:ComSpec /d /c call $batch --dry-run '<nul'
         Assert-True ($LASTEXITCODE -eq 0) 'Batch preview failed'
     }
 }
