@@ -1,0 +1,60 @@
+name: Validate and prepare release
+on:
+  push:
+    branches: [main, 'fix/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Windows ${{ matrix.shell }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Isolated fixtures and Batch preview (Windows PowerShell 5.1)
+        if: matrix.shell == 'powershell'
+        shell: powershell
+        run: ./tests/Test-Cleaner.ps1
+      - name: Isolated fixtures and Batch preview (PowerShell 7)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: ./tests/Test-Cleaner.ps1
+      - name: Build and verify the download (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          ./scripts/Build-Release.ps1
+          ./scripts/Test-Release.ps1
+  release:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Package tested files
+        shell: powershell
+        run: |
+          ./scripts/Build-Release.ps1
+          ./scripts/Test-Release.ps1
+      - name: Prepare v2.0.0 prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v2.0.0 --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'v2.0.0 already exists; retaining its previously published assets.'
+            exit 0
+          }
+          gh release create v2.0.0 --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title "v2.0.0 - Verified cache cleaner (prerelease)" --notes-file RELEASE_NOTES.md dist/Star-Citizen-Easy-Cleaner-v2.0.0.zip dist/Star-Citizen-Easy-Cleaner-v2.0.0.zip.sha256
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to create the downloadable prerelease.' }
