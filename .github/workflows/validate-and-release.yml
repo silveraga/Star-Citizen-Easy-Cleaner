@@ -18,9 +18,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Isolated fixture tests and Batch preview
-        shell: ${{ matrix.shell }}
+      - name: Isolated fixtures and Batch preview (Windows PowerShell 5.1)
+        if: matrix.shell == 'powershell'
+        shell: powershell
         run: ./tests/Test-Cleaner.ps1
+      - name: Isolated fixtures and Batch preview (PowerShell 7)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: ./tests/Test-Cleaner.ps1
+      - name: Build and verify the download (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          ./scripts/Build-Release.ps1
+          ./scripts/Test-Release.ps1
   release:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -33,7 +43,9 @@ jobs:
           persist-credentials: false
       - name: Package tested files
         shell: powershell
-        run: ./scripts/Build-Release.ps1
+        run: |
+          ./scripts/Build-Release.ps1
+          ./scripts/Test-Release.ps1
       - name: Prepare v2.0.0 prerelease
         shell: pwsh
         env:
