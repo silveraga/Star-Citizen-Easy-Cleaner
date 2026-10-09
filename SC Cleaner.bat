@@ -1,29 +1,32 @@
 @echo off
-setlocal enabledelayedexpansion
-
-::Looking for SC Shader path for deletion and make sure to not delete the GraphicsSettings folder because it contains the value indicating if dx11 or vulkan.
-set "folder_search=GraphicsSettings"
-set "path=%localappdata%\Star Citizen"
-
-::Script for deleting only the folders who are not tagged as "GraphicsSettings"
-for /d %%i in ("%path%\*") do (
-    for /f "delims=" %%a in ('dir /b /ad "%%i"') do (
-        if "%%a"=="%folder_search%" (
-            set "folder_found=%%i\%%a"
-        ) else (
-            echo Deleting folder: %%i\%%a
-            rd /s /q "%%i\%%a"
-        )
-    )
+setlocal DisableDelayedExpansion
+if not "%~2"=="" goto usage
+if "%~1"=="" goto preview
+if /i "%~1"=="--dry-run" goto preview
+if /i "%~1"=="--clean" goto clean
+if /i "%~1"=="--help" goto usage
+goto invalid
+:preview
+set "SC_CLEANER_MODE=Preview"
+goto run
+:clean
+set "SC_CLEANER_MODE=Clean"
+goto run
+:run
+if not exist "%~dp0SC Cleaner.ps1" (
+  echo ERROR: SC Cleaner.ps1 is missing. Extract both files from the ZIP first.
+  pause
+  exit /b 1
 )
-
-if not defined folder_found (
-    echo The %folder_search% folder was not found.
-)
-
-endlocal
-
-echo Cleanup completed. Closing in 3 seconds...
-timeout /t 3 >nul
-
-exit
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0SC Cleaner.ps1" -Mode %SC_CLEANER_MODE%
+set "SC_CLEANER_EXIT=%ERRORLEVEL%"
+echo.
+pause
+exit /b %SC_CLEANER_EXIT%
+:invalid
+echo ERROR: Unknown argument.
+:usage
+echo Usage: "SC Cleaner.bat" [--dry-run ^| --clean ^| --help]
+echo Default: simulation only. --clean shows the plan and asks you to type CLEAN.
+if /i "%~1"=="--help" exit /b 0
+exit /b 2
